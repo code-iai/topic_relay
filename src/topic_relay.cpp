@@ -66,14 +66,22 @@ int lastlength;
 
 std::string exec(std::string cmd) {
   FILE* pipe = popen(cmd.c_str(), "r");
-  if(!pipe) return "ERROR";
+  
+  if(!pipe) {
+    return "ERROR";
+  }
+  
   char buffer[128];
   std::string result = "";
+  
   while(!feof(pipe)) {
-    if(fgets(buffer, 128, pipe) != NULL)
+    if(fgets(buffer, 128, pipe) != NULL) {
       result += buffer;
+    }
   }
+  
   pclose(pipe);
+  
   return result;
 }
 
@@ -112,11 +120,6 @@ typedef FakeMessage_<std::allocator<void> > FakeMessage;
 
 ROS_IMPLEMENT_SIMPLE_TOPIC_TRAITS(FakeMessage, strMD5.c_str(), strDataType.c_str(), "")
 
-/*namespace ros {
-  namespace serialization {
-    ROS_CREATE_SIMPLE_SERIALIZER(FakeMessage)
-  }
-  }*/
 
 namespace ros {
   namespace serialization {
