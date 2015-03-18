@@ -196,6 +196,8 @@ void childHandler(int rfd, int wfd) {
   ros::master::V_TopicInfo topics;
   bool bHasTopic = false;
   
+  std::cout << "[" << strMaster << "] Waiting for topic '" << strTopic << "'" << std::endl;
+  
   while(!bHasTopic) {
     ros::master::getTopics(topics);
     
@@ -213,6 +215,8 @@ void childHandler(int rfd, int wfd) {
     }
   }
   
+  std::cout << "[" << strMaster << "] Got topic '" << strTopic << "'" << std::endl;
+  
   ros::Subscriber subTest = nh.subscribe(ops);
   
   // Now initialize the publisher
@@ -221,6 +225,8 @@ void childHandler(int rfd, int wfd) {
   
   int flags = fcntl(rfd, F_GETFL, 0);
   fcntl(rfd, F_SETFL, flags | O_NONBLOCK);
+  
+  std::cout << "[" << strMaster << "] Entering main loop" << std::endl;
   
   while(true) {
     ros::spinOnce();
@@ -269,6 +275,8 @@ void childHandler(int rfd, int wfd) {
       delete[] fmMessage.cData;
     }
   }
+  
+  std::cout << "[" << strMaster << "] Quitting" << std::endl;
   
   delete[] argv;
 }
@@ -323,6 +331,8 @@ int main(int argc, char** argv) {
     // Child
   } else {
     // Parent
+    std::cout << "[parent] " << argv[2] << " <- '" << argv[1] << "' -> " << argv[3] << std::endl;
+    
     pcreate(fdschild2, childHandler);
     
     std::string strParams1 = std::string(argv[1]) + " " + std::string(argv[2]);
