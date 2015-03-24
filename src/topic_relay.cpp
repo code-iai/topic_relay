@@ -329,6 +329,9 @@ int main(int argc, char** argv) {
   
   if(pcreate(fdschild1, childHandler) == 0) {
     // Child
+    
+    // The childHandler does all the work. In case it returns, this
+    // function will quit.
   } else {
     // Parent
     std::cout << "[parent] " << argv[2] << " <- '" << argv[1] << "' -> " << argv[3] << std::endl;
