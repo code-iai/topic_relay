@@ -18,3 +18,7 @@ wait until it got published. In this state, even when the other master
 already got its topic, no messages will be forwarded. The moment both
 topics are available (i.e., were published on at least once), the
 control flow works normally.
+
+Note that the message type on the relayed topic must be installed on
+the machine `topic_relay` runs on (as it calls `rosmsg md5` in order
+to find the MD5 sum for proper communication with the master).
