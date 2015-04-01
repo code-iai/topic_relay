@@ -43,6 +43,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -62,6 +63,26 @@ std::string strMD5;
 std::string strDataType;
 char* lastmsg;
 int lastlength;
+std::list<int> lstChildPIDs;
+bool bRun;
+
+
+void catchHandler(int nSignum) {
+  switch(nSignum) {
+  case SIGTERM:
+  case SIGINT: {
+    for(int nPID : lstChildPIDs) {
+      // Kill fork()'ed child processes
+      kill(nPID, SIGKILL);
+    }
+    
+    bRun = false;
+  } break;
+    
+  default:
+    break;
+  }
+}
 
 
 std::string exec(std::string cmd) {
@@ -290,25 +311,25 @@ pid_t pcreate(int fds[2], pfunc_t pfunc) {
    */
   pid_t pid;
   int pipes[4];
-
+  
   /* Warning: I'm not handling possible errors in pipe/fork */
-
+  
   pipe(&pipes[0]); /* Parent read/child write pipe */
   pipe(&pipes[2]); /* Child read/parent write pipe */
 
-  if ((pid = fork()) > 0) {
+  if((pid = fork()) > 0) {
     /* Parent process */
     fds[0] = pipes[0];
     fds[1] = pipes[3];
-
+    
     close(pipes[1]);
     close(pipes[2]);
-
+    
     return pid;
   } else {
     close(pipes[0]);
     close(pipes[3]);
-
+    
     pfunc(pipes[2], pipes[1]);
     
     exit(0);
@@ -318,6 +339,7 @@ pid_t pcreate(int fds[2], pfunc_t pfunc) {
 }
 
 int main(int argc, char** argv) {
+  bRun = true;
   lastmsg = NULL;
   lastlength = 0;
   
@@ -327,7 +349,9 @@ int main(int argc, char** argv) {
   g_argc = argc;
   g_argv = argv;
   
-  if(pcreate(fdschild1, childHandler) == 0) {
+  int pid1 = pcreate(fdschild1, childHandler);
+  
+  if(pid1 == 0) {
     // Child
     
     // The childHandler does all the work. In case it returns, this
@@ -336,7 +360,10 @@ int main(int argc, char** argv) {
     // Parent
     std::cout << "[parent] " << argv[2] << " <- '" << argv[1] << "' -> " << argv[3] << std::endl;
     
-    pcreate(fdschild2, childHandler);
+    lstChildPIDs.push_back(pid1);
+    int pid2 = pcreate(fdschild2, childHandler);
+    
+    lstChildPIDs.push_back(pid2);
     
     std::string strParams1 = std::string(argv[1]) + " " + std::string(argv[2]);
     std::string strParams2 = std::string(argv[1]) + " " + std::string(argv[3]);
@@ -353,7 +380,7 @@ int main(int argc, char** argv) {
     flags = fcntl(fdschild2[0], F_GETFL, 0);
     fcntl(fdschild2[0], F_SETFL, flags | O_NONBLOCK);
     
-    while(true) {
+    while(bRun) {
       nRead = read(fdschild1[0], buffer, sizeof(buffer));
       
       if(nRead > 0) {
